@@ -1,0 +1,40 @@
+[sshd]
+
+enabled = true
+port    = ssh
+
+[ssh-ddos]
+
+enabled = true
+port    = ssh,sftp
+filter  = sshd-ddos
+
+[webmin-auth]
+
+enabled = true
+port    = 10000
+
+[proftpd]
+
+enabled  = true
+port     = ftp,ftp-data,ftps,ftps-data
+
+[postfix]
+
+enabled  = true
+port     = smtp,465,submission
+
+[dovecot]
+
+enabled = true
+port    = pop3,pop3s,imap,imaps,submission,465,sieve
+
+[postfix-sasl]
+
+enabled  = true
+port     = smtp,465,submission,imap,imaps,pop3,pop3s
+
+[slapd]
+enabled = true
+[sshd-ddos]
+enabled = true

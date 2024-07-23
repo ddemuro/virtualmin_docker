@@ -1,0 +1,11 @@
+# /etc/shells: valid login shells
+/bin/sh
+/bin/dash
+/bin/bash
+/bin/rbash
+/usr/sbin/jk_chrootsh
+/bin/false
+/bin/zsh
+/usr/bin/zsh
+/usr/bin/screen
+/usr/bin/tmux

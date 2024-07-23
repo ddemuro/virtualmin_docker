@@ -1,0 +1,42 @@
+services:
+    tkvmin:
+        environment:
+          - "OPERATION=${OPERATION}"
+          # To pass over to test in run.sh
+          - "VAR=${VAR}"
+          - "MODE=${MODE}"
+          - "ENVIRONMENT=${ENVIRONMENT}"
+          - "PYPI_PASSWORD=${PYPI_PASSWORD}"
+          - "PYPI_USERNAME=${PYPI_USERNAME}"
+          # For debug is useful to pass user and pass.
+          - "GID=${GID}"
+          - "UID=${UID}"
+        container_name: tkvmin
+        command: "setup/run.sh" # runs this when container starts
+        #restart: always
+        user: "${UID}:${GID}"
+        build:
+            dockerfile: Dockerfile
+            context: .
+        #network_mode: 'host'
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.2
+        ports:
+          - 81:80 # API
+          - 4999:5000 # Debug
+          - 4998:4000 # Attach vscode
+        volumes:
+            - /srv/.cache   # Do not use these mapped locally (Attach to the container)
+            - /srv/.env     # 
+            - ./:/srv
+
+# Create the required network
+networks:
+    vmin:
+        driver: bridge
+        name: vmin
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.235.0/24

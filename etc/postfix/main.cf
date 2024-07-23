@@ -1,0 +1,143 @@
+# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+
+
+# Debian specific:  Specifying a file name will cause the first
+# line of that file to be used as the name.  The Debian default
+# is /etc/mailname.
+myhostname = vmin01.takelan.com
+mydomain = takelan.com
+mydestination = $myhostname, localhost, localhost.localdomain
+smtpd_banner = $myhostname ESMTP $mail_name TakeLAN [VMIN01-MI]
+biff = no
+
+# Don't resolve dns
+lmtp_host_lookup = native
+smtp_host_lookup = native
+
+# appending .domain is the MUA's job.
+append_dot_mydomain = no
+
+# Uncomment the next line to generate "delayed mail" warnings
+delay_warning_time = 4h
+
+readme_directory = no
+
+# See http://www.postfix.org/COMPATIBILITY_README.html -- default to 2 on
+# fresh installs.
+compatibility_level = 2
+
+# TLS parameters
+smtpd_tls_cert_file = /opt/scripts/domain-certs/takelan.com/ssl.cert
+smtpd_tls_key_file = /opt/scripts/domain-certs/takelan.com/ssl.key
+smtpd_use_tls=yes
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+# See /usr/share/doc/postfix/TLS_README.gz in the postfix-doc package for
+# information on enabling SSL in the smtp client.
+
+# Maximum Size
+bounce_size_limit = 500000000
+message_size_limit = 50000000
+
+# Don't look for AAAA
+# inet_protocols = ipv4
+
+# Mailbox directory
+home_mailbox = Maildir/
+
+# Configure SPF
+#policy-spf_time_limit = 3600s
+
+
+
+smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination permit_inet_interfaces
+alias_maps = hash:/etc/aliases,ldap:/etc/postfix/alias_maps.1.ldap.conf
+alias_database = hash:/etc/aliases,ldap:/etc/postfix/alias_maps.1.ldap.conf
+
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.254.0.0/16 10.5.0.0/24 10.5.0.0/24 10.3.0.0/16 10.3.0.44 206.72.192.67 206.72.192.68 192.96.217.50 192.96.217.51 192.96.217.52 192.96.217.53
+recipient_delimiter = +
+virtual_alias_maps = hash:/etc/postfix/virtual,ldap:/etc/postfix/virtual_alias_maps.1.ldap.conf
+sender_bcc_maps = hash:/etc/postfix/bcc
+mailbox_command = /usr/bin/procmail-wrapper -o -a $DOMAIN -d $LOGNAME
+
+## SASL Auth Settings
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_authenticated_header = yes
+smtpd_sasl_local_domain = $myhostname
+broken_sasl_auth_clients = yes
+
+smtpd_sasl_security_options = noanonymous
+
+
+## Dovecot Settings for deliver, SASL Auth and virtual transport
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+
+# Sender restrictions:
+smtpd_sender_restrictions = permit_sasl_authenticated,    permit_mynetworks,    reject_non_fqdn_sender,    reject_unknown_sender_domain,    reject_sender_login_mismatch
+
+#smtpd_recipient_restrictions = permit_mynetworks permit_sasl_authenticated reject_unauth_destination
+# Recipient restrictions:
+smtpd_recipient_restrictions = permit_mynetworks permit_sasl_authenticated reject_unauth_destination permit_inet_interfaces
+
+# Client restrictions:
+smtpd_client_restrictions = permit_sasl_authenticated permit_mynetworks reject_unknown_client_hostname permit_inet_interfaces reject_rbl_client spam.spamrats.com noptr.spamrats.com spam.spamrats.com dnsbl.cobion.com
+
+# More restrictions:
+smtpd_soft_error_limit = 10
+smtpd_hard_error_limit = 10
+smtpd_client_connection_count_limit = 5
+smtpd_client_connection_rate_limit = 5
+smtpd_client_new_tls_session_rate_limit = 5
+
+# Message error codes
+## NEW
+disable_vrfy_command = yes
+strict_rfc821_envelopes = yes
+invalid_hostname_reject_code = 554
+multi_recipient_bounce_reject_code = 554
+non_fqdn_reject_code = 554
+unknown_address_reject_code = 554
+unknown_client_reject_code = 554
+unknown_hostname_reject_code = 554
+unknown_local_recipient_reject_code = 554
+unknown_relay_recipient_reject_code = 554
+unknown_virtual_alias_reject_code = 554
+unknown_virtual_mailbox_reject_code = 554
+unverified_recipient_reject_code = 554
+unverified_sender_reject_code = 554
+
+# Limits
+#default_destination_recipient_limit = 30
+#initial_destination_concurrency = 30
+
+# Do not send our own bounces.
+soft_bounce = yes
+
+smtp_tls_security_level = dane
+allow_percent_hack = no
+
+# Milter
+milter_default_action = accept
+milter_protocol = 2
+#smtpd_milters = inet:localhost:8891,local:/var/run/milter-greylist/milter-greylist.sock
+#non_smtpd_milters = inet:localhost:8891,local:/var/run/milter-greylist/milter-greylist.sock
+smtpd_milters = inet:localhost:8892,local:/var/spool/postfix/var/run/milter-greylist/milter-greylist.sock
+non_smtpd_milters = inet:localhost:8892,local:/var/spool/postfix/var/run/milter-greylist/milter-greylist.sock
+#sender_dependent_default_transport_maps = hash:/etc/postfix/dependent
+debug_peer_level = 1
+relayhost = mx.takelan.com:26
+mynetworks_style = subnet
+
+
+#smtpd_tls_security_level = may
+
+queue_run_delay = 60s
+default_destination_concurrency_limit = 10
+minimal_backoff_time = 30s
+smtpd_tls_CAfile = /etc/postfix/postfix.ca.pem
+smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+initial_destination_concurrency = 30
+#header_checks = pcre:/etc/postfix/header_checks.pcre
+sender_dependent_default_transport_maps = hash:/etc/postfix/sender_dependent_default_transport_maps

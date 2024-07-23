@@ -1,0 +1,29 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: lookup-domain
+# Required-Start: $network $syslog
+# Required-Stop: $network
+# Default-Start: 2 3 5
+# Default-Stop:
+# Description: Daemon for quickly looking up Virtualmin servers from procmail
+### END INIT INFO
+
+case "$1" in
+'start')
+	/usr/sbin/virtualmin lookup-domain-daemon
+	RETVAL=$?
+	;;
+'stop')
+	kill `cat /var/webmin/lookup-domain-daemon.pid`
+	RETVAL=$?
+	;;
+'restart')
+	$0 stop ; $0 start
+	RETVAL=$?
+	;;
+*)
+	echo "Usage: $0 { start | stop }"
+	RETVAL=1
+	;;
+esac
+exit $RETVAL

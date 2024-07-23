@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/local/sbin/certbot-auto renew >> /var/log/le-renew.log

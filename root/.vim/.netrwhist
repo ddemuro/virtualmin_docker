@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =6
+let g:netrw_dirhist_6='/opt/scripts/autorestart'
+let g:netrw_dirhist_5='/etc/lsyncd'
+let g:netrw_dirhist_4='/var/lib/bind'
+let g:netrw_dirhist_3='/etc/mysql/mariadb.conf.d'
+let g:netrw_dirhist_2='/etc/filebeat/modules.d'
+let g:netrw_dirhist_1='/etc/filebeat'
+let g:netrw_dirhist_0='/home/infopes1/public_html/sites/default/files'
+let g:netrw_dirhist_9='/home/infopes1/public_html/sites/default'
+let g:netrw_dirhist_8='/home/infopes1/public_html/sites/default/css'
+let g:netrw_dirhist_7='/home/infopes1/public_html/sites/default'

@@ -1,0 +1,7 @@
+SOCKET=inet:8891@localhost
+GROUP=opendkim
+USER=opendkim
+PIDFILE=$RUNDIR/$NAME.pid
+DAEMON_OPTS="-b s"
+RUNDIR=/var/run/opendkim
+EXTRAAFTER=""

@@ -1,0 +1,17 @@
+LOGFILE=/var/log/procmail.log
+TRAP=/etc/webmin/virtual-server/procmail-logger.pl
+:0wi
+VIRTUALMIN=|/etc/webmin/virtual-server/lookup-domain.pl --exitcode 75 $LOGNAME
+EXITCODE=$?
+:0
+* ?/usr/bin/test "$EXITCODE" = "75"
+/dev/null
+EXITCODE=0
+:0
+* ?/usr/bin/test "$VIRTUALMIN" != ""
+{
+INCLUDERC=/etc/webmin/virtual-server/procmail/$VIRTUALMIN
+}
+ORGMAIL=$HOME/Maildir/
+DEFAULT=$HOME/Maildir/
+DROPPRIVS=yes

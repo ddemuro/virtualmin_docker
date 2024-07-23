@@ -1,0 +1,32 @@
+services:
+    tkvmin:
+        environment:
+          - "OPERATION=${OPERATION}"
+          # To pass over to test in run.sh
+          - "VAR=${VAR}"
+          - "MODE=${MODE}"
+          - "ENVIRONMENT=${ENVIRONMENT}"
+          - "PYPI_PASSWORD=${PYPI_PASSWORD}"
+          - "PYPI_USERNAME=${PYPI_USERNAME}"
+        image: ${IMAGE}:${TAG}
+        container_name: tkvmin
+        command: "setup/run.sh" # runs this when container starts
+        #restart: always
+        build:
+            dockerfile: Dockerfile
+            context: .
+            cache_from: 
+              - dkrhub.takelan.com/${IMAGE}:latest
+        networks:
+          tknet:
+                ipv4_address: 172.16.235.2
+
+# Create the required network
+networks:
+    tknet:
+        driver: bridge
+        name: tknet
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.235.0/24

@@ -1,0 +1,4 @@
+ENABLED=1
+CRON=1
+OPTIONS="--create-prefs --max-children 5 --helper-home-dir"
+PIDFILE=/var/run/spamd.pid
