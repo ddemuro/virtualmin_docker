@@ -2,34 +2,97 @@ services:
     tkvmin:
         environment:
           - "OPERATION=${OPERATION}"
-          # To pass over to test in run.sh
-          - "VAR=${VAR}"
-          - "MODE=${MODE}"
-          - "ENVIRONMENT=${ENVIRONMENT}"
-          - "PYPI_PASSWORD=${PYPI_PASSWORD}"
-          - "PYPI_USERNAME=${PYPI_USERNAME}"
-          # For debug is useful to pass user and pass.
-          - "GID=${GID}"
-          - "UID=${UID}"
+          - "DKIMSELECTOR=${DKIMSELECTOR}"
+          - "VMINMAILNAME=${VMINMAILNAME}"
+          - "SLAPD_PASSWORD=${SLAPD_PASSWORD}"
+          - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
         container_name: tkvmin
         command: "setup/run.sh" # runs this when container starts
-        #restart: always
-        user: "${UID}:${GID}"
+        restart: always
         build:
             dockerfile: Dockerfile
             context: .
-        #network_mode: 'host'
         networks:
           vmin:
                 ipv4_address: 172.16.235.2
         ports:
-          - 81:80 # API
-          - 4999:5000 # Debug
-          - 4998:4000 # Attach vscode
+          - "80:80/tcp"
+          - "443:443/tcp"
+          - "22:22/tcp"
+          - "25:25/tcp"
+          - "587:587/tcp"
+          - "465:465/tcp"
+          - "110:110/tcp"
+          - "995:995/tcp"
+          - "143:143/tcp"
+          - "993:993/tcp"
+          - "10000:10000/tcp"
+          - "20000:20000/tcp"
+          - "53:53/udp"
+          - "53:53/tcp"
         volumes:
-            - /srv/.cache   # Do not use these mapped locally (Attach to the container)
-            - /srv/.env     # 
-            - ./:/srv
+            - ./virtualmin/etc/:/etc
+            - ./virtualmin/home/:/home
+            - ./virtualmin/var/:/var
+            - ./virtualmin/root/:/root
+            - ./virtualmin/srv/:/srv
+            - ./virtualmin/opt/:/opt
+            - ./virtualmin/mnt/:/mnt
+            - ./virtualmin/media/:/media
+
+    slapd:
+        image: osixia/openldap:1.4.0
+        container_name: slapd
+        environment:
+          - LDAP_ORGANISATION=${LDAP_ORGANISATION}
+          - LDAP_DOMAIN=${LDAP_DOMAIN}
+          - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD}
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.3
+        ports:
+          - "389:389/tcp"
+          - "636:636/tcp"
+        volumes:
+          - ./virtualmin//var/lib/ldap:/var/lib/ldap
+          - ./virtualmin/etc/ldap/:/etc/ldap/
+
+    slapdweb:
+        image: osixia/phpldapadmin:0.9.0
+        container_name: slapdweb
+        environment:
+          - PHPLDAPADMIN_LDAP_HOSTS="slapd"
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.4
+        ports:
+          - "10080:80/tcp"
+
+    mysql:
+        image: mariadb:10.8.8-jammy
+        container_name: mysql
+        environment:
+          - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.5
+        ports:
+          - "3306:3306/tcp"
+        volumes:
+          - ./virtualmin/var/lib/mysql:/var/lib/mysql
+          - ./virtualmin/etc/mysql/:/etc/mysql/
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        environment:
+          - PMA_HOST=mysql
+          - PMA_PORT=3306
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.6
+        ports:
+          - "10081:80/tcp"
 
 # Create the required network
 networks:

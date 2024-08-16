@@ -8,7 +8,7 @@ PYTHONUNBUFFERED=TRUE
 # Normal start
 function start_normal() {
     message "Starting Virtualmin."
-    
+    /usr/bin/systemctl default --init
 }
 
 # Start debug mode, lock only
@@ -16,6 +16,8 @@ function debug() {
     cd $ROOTDIR
     # We might need this as default
     message "Starting virtualmin while monitoring logs."
+    /usr/bin/systemctl default --init
+    tail -f /var/log/*
 }
 
 case "${OPERATION}" in

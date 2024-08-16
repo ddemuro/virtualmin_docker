@@ -36,7 +36,7 @@
 # * Basic Settings
 #
 user                          = mysql
-pid-file                            = /var/run/mysqld/mysqld.pid
+pid-file                      = /var/run/mysqld/mysqld.pid
 socket                        = /var/run/mysqld/mysqld.sock
 port                          = 3306
 basedir                       = /usr
