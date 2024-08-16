@@ -121,12 +121,12 @@ function install_requirements() {
 
 # Example functions for error and message handling
 function install_package_if_not_installed() {
-    local package=$1
-    if [ $DEBUG -eq 0 ]; then
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $package
+    local package="$1"
+    if [ -z $DEBUG ] || [ $DEBUG -eq 0 ]; then
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$package"
         return $?
     fi
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $package &>> /dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$package" &>> /dev/null
     return $?
 }
 
