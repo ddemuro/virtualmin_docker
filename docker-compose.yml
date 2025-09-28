@@ -1,17 +1,26 @@
+version: '3.8'
+
 services:
     tkvmin:
+        image: virtualmin:latest
+        build:
+            dockerfile: Dockerfile
+            context: .
+            target: runtime
+        container_name: tkvmin
+        hostname: virtualmin.local
+        restart: unless-stopped
+        privileged: true
+        cap_add:
+          - SYS_ADMIN
+          - NET_ADMIN
         environment:
-          - "OPERATION=${OPERATION}"
+          - "OPERATION=${OPERATION:-startlock}"
           - "DKIMSELECTOR=${DKIMSELECTOR}"
           - "VMINMAILNAME=${VMINMAILNAME}"
           - "SLAPD_PASSWORD=${SLAPD_PASSWORD}"
           - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
-        container_name: tkvmin
-        command: "setup/run.sh" # runs this when container starts
-        restart: always
-        build:
-            dockerfile: Dockerfile
-            context: .
+          - "TZ=${TZ:-UTC}"
         networks:
           vmin:
                 ipv4_address: 172.16.235.2
@@ -39,14 +48,46 @@ services:
             - ./virtualmin/opt/:/opt
             - ./virtualmin/mnt/:/mnt
             - ./virtualmin/media/:/media
+            - /sys/fs/cgroup:/sys/fs/cgroup:ro
+            - virtualmin-backups:/data/backups
+            - virtualmin-updates:/data/updates
+            # Automated backup volumes
+            - ./backups:/backups
+            - ./backups/daily:/backups/daily
+            - ./backups/weekly:/backups/weekly
+            - ./backups/monthly:/backups/monthly
+        tmpfs:
+            - /run
+            - /run/lock
+            - /tmp
+        depends_on:
+          - mysql
+          - slapd
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost/server-status"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 5m
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
 
     slapd:
         image: osixia/openldap:1.4.0
         container_name: slapd
+        hostname: ldap.virtualmin.local
+        restart: unless-stopped
         environment:
           - LDAP_ORGANISATION=${LDAP_ORGANISATION}
           - LDAP_DOMAIN=${LDAP_DOMAIN}
           - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD}
+          - LDAP_TLS=true
+          - LDAP_TLS_ENFORCE=false
+          - LDAP_BACKUP_CONFIG_CRON_EXP="0 2 * * *"
+          - LDAP_BACKUP_DATA_CRON_EXP="0 2 * * *"
         networks:
           vmin:
                 ipv4_address: 172.16.235.3
@@ -54,8 +95,20 @@ services:
           - "389:389/tcp"
           - "636:636/tcp"
         volumes:
-          - ./virtualmin//var/lib/ldap:/var/lib/ldap
-          - ./virtualmin/etc/ldap/:/etc/ldap/
+          - ldap-data:/var/lib/ldap
+          - ldap-config:/etc/ldap/slapd.d
+          # LDAP backup volume
+          - ./backups/ldap:/data/backup
+        healthcheck:
+          test: ["CMD", "ldapsearch", "-x", "-h", "localhost"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
 
     slapdweb:
         image: osixia/phpldapadmin:0.9.0
@@ -69,30 +122,239 @@ services:
           - "10080:80/tcp"
 
     mysql:
-        image: mariadb:10.8.8-jammy
+        image: mariadb:10.11
         container_name: mysql
+        hostname: db.virtualmin.local
+        restart: unless-stopped
         environment:
           - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+          - MYSQL_ROOT_HOST=%
+          - TZ=${TZ:-UTC}
         networks:
           vmin:
                 ipv4_address: 172.16.235.5
         ports:
           - "3306:3306/tcp"
         volumes:
-          - ./virtualmin/var/lib/mysql:/var/lib/mysql
-          - ./virtualmin/etc/mysql/:/etc/mysql/
+          - mysql-data:/var/lib/mysql
+          - ./virtualmin/etc/mysql/:/etc/mysql/conf.d:ro
+          # MySQL backup volume
+          - ./backups/mysql:/backups/mysql
+        healthcheck:
+          test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
 
     phpmyadmin:
-        image: phpmyadmin/phpmyadmin
+        image: phpmyadmin/phpmyadmin:latest
         container_name: phpmyadmin
+        restart: unless-stopped
         environment:
           - PMA_HOST=mysql
           - PMA_PORT=3306
+          - PMA_ARBITRARY=0
+          - UPLOAD_LIMIT=100M
         networks:
           vmin:
                 ipv4_address: 172.16.235.6
         ports:
           - "10081:80/tcp"
+        depends_on:
+          - mysql
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    # Monitoring Stack
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: prometheus
+        restart: unless-stopped
+        command:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus'
+          - '--storage.tsdb.retention.time=30d'
+          - '--web.enable-lifecycle'
+        volumes:
+          - ./monitoring/prometheus:/etc/prometheus
+          - prometheus-data:/prometheus
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.10
+        ports:
+          - "9090:9090"
+        depends_on:
+          - node-exporter
+          - cadvisor
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        restart: unless-stopped
+        environment:
+          - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+          - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+          - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+          - GF_USERS_ALLOW_SIGN_UP=false
+          - GF_SERVER_ROOT_URL=http://grafana:3000
+        volumes:
+          - grafana-data:/var/lib/grafana
+          - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+          - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.11
+        ports:
+          - "3000:3000"
+        depends_on:
+          - prometheus
+          - loki
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    loki:
+        image: grafana/loki:latest
+        container_name: loki
+        restart: unless-stopped
+        command: -config.file=/etc/loki/local-config.yaml
+        volumes:
+          - ./monitoring/loki:/etc/loki
+          - loki-data:/loki
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.12
+        ports:
+          - "3100:3100"
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    promtail:
+        image: grafana/promtail:latest
+        container_name: promtail
+        restart: unless-stopped
+        command: -config.file=/etc/promtail/config.yml
+        volumes:
+          - ./monitoring/promtail:/etc/promtail
+          - /var/log:/var/log:ro
+          - /var/lib/docker/containers:/var/lib/docker/containers:ro
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.13
+        depends_on:
+          - loki
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    node-exporter:
+        image: prom/node-exporter:latest
+        container_name: node-exporter
+        restart: unless-stopped
+        pid: host
+        volumes:
+          - /proc:/host/proc:ro
+          - /sys:/host/sys:ro
+          - /:/rootfs:ro
+        command:
+          - '--path.procfs=/host/proc'
+          - '--path.sysfs=/host/sys'
+          - '--path.rootfs=/rootfs'
+          - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.14
+        ports:
+          - "9100:9100"
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    cadvisor:
+        image: gcr.io/cadvisor/cadvisor:latest
+        container_name: cadvisor
+        restart: unless-stopped
+        privileged: true
+        devices:
+          - /dev/kmsg:/dev/kmsg
+        volumes:
+          - /:/rootfs:ro
+          - /var/run:/var/run:ro
+          - /sys:/sys:ro
+          - /var/lib/docker:/var/lib/docker:ro
+          - /cgroup:/cgroup:ro
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.15
+        ports:
+          - "8080:8080"
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    # MySQL Exporter for database metrics
+    mysql-exporter:
+        image: prom/mysqld-exporter:latest
+        container_name: mysql-exporter
+        restart: unless-stopped
+        environment:
+          - DATA_SOURCE_NAME=root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.16
+        ports:
+          - "9104:9104"
+        depends_on:
+          - mysql
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+
+    # Apache Exporter for web server metrics
+    apache-exporter:
+        image: lusotycoon/apache-exporter:latest
+        container_name: apache-exporter
+        restart: unless-stopped
+        command:
+          - '--scrape_uri=http://tkvmin/server-status?auto'
+        networks:
+          vmin:
+                ipv4_address: 172.16.235.17
+        ports:
+          - "9117:9117"
+        depends_on:
+          - tkvmin
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
 
 # Create the required network
 networks:
@@ -103,3 +365,23 @@ networks:
             driver: default
             config:
                 - subnet: 172.16.235.0/24
+                  gateway: 172.16.235.1
+
+# Named volumes for persistent data
+volumes:
+    mysql-data:
+        driver: local
+    ldap-data:
+        driver: local
+    ldap-config:
+        driver: local
+    virtualmin-backups:
+        driver: local
+    virtualmin-updates:
+        driver: local
+    prometheus-data:
+        driver: local
+    grafana-data:
+        driver: local
+    loki-data:
+        driver: local

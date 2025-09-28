@@ -1,0 +1,130 @@
+groups:
+  - name: virtualmin_alerts
+    interval: 30s
+    rules:
+      # Container alerts
+      - alert: ContainerDown
+        expr: up{job="cadvisor"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.instance }} is down"
+          description: "Container {{ $labels.instance }} has been down for more than 5 minutes"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.container_name }}"
+          description: "Container {{ $labels.container_name }} CPU usage is above 80% (current value: {{ $value }}%)"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.container_name }}"
+          description: "Container {{ $labels.container_name }} memory usage is above 90% (current value: {{ $value }}%)"
+
+      # Disk space alerts
+      - alert: DiskSpaceLow
+        expr: node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space on {{ $labels.instance }} is below 10% (current value: {{ $value }}%)"
+
+      # MySQL/MariaDB alerts
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL is down"
+          description: "MySQL has been down for more than 5 minutes"
+
+      - alert: MySQLTooManyConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL too many connections"
+          description: "MySQL connection usage is above 80% (current value: {{ $value }}%)"
+
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL slow queries detected"
+          description: "MySQL has {{ $value }} slow queries per second"
+
+      # Apache alerts
+      - alert: ApacheDown
+        expr: apache_up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Apache is down"
+          description: "Apache web server has been down for more than 5 minutes"
+
+      - alert: ApacheTooManyConnections
+        expr: apache_connections{state="total"} > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Apache has too many connections"
+          description: "Apache has {{ $value }} total connections"
+
+      # Service health checks
+      - alert: ServiceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 5 minutes"
+
+      # Network alerts
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network traffic on {{ $labels.device }}"
+          description: "Network interface {{ $labels.device }} is receiving more than 100MB/s"
+
+      # Mail server alerts
+      - alert: PostfixQueueHigh
+        expr: postfix_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postfix mail queue is high"
+          description: "Postfix mail queue has {{ $value }} messages"
+
+      # SSL Certificate expiry
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in less than 7 days"

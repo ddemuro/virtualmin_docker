@@ -1,0 +1,209 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+.github/
+
+# Documentation
+*.md
+README*
+LICENSE*
+CHANGELOG*
+docs/
+*.txt
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+.classpath
+*.iml
+.editorconfig
+
+# AI Assistant files
+.claude*
+.chatgpt*
+.copilot*
+.ai*
+.cursor*
+claude.json
+.claude_files/
+.aider*
+.continue/
+.codeium/
+.tabnine/
+
+# Development files
+*.log
+*.pid
+*.seed
+*.pid.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+node_modules/
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Test files
+test/
+tests/
+spec/
+coverage/
+.nyc_output
+*.test.js
+*.spec.js
+__tests__/
+
+# Build artifacts
+dist/
+build/
+out/
+target/
+*.egg-info/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.temp
+backups/
+backup/
+
+# Docker files (for multi-stage builds)
+Dockerfile*
+docker-compose*.yml
+!docker-compose.yml
+!Dockerfile
+
+# Monitoring data (should be mounted, not copied)
+monitoring/prometheus/data/
+monitoring/grafana/data/
+monitoring/loki/data/
+prometheus-data/
+grafana-data/
+loki-data/
+
+# Virtualmin data directories (should be mounted)
+virtualmin/var/lib/mysql/*
+virtualmin/var/log/*
+virtualmin/var/cache/*
+virtualmin/var/tmp/*
+virtualmin/var/spool/*
+virtualmin/var/backups/*
+virtualmin/home/*/Maildir/*
+virtualmin/home/*/mail/*
+virtualmin/home/*/tmp/*
+virtualmin/home/*/logs/*
+
+# Temporary files
+tmp/
+temp/
+cache/
+.cache/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Archive files
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+*.bz2
+*.xz
+
+# Sandbox and development
+sandbox/
+.sandbox/
+dev/
+development/
+
+# Secrets and credentials
+.env
+.env.*
+!.env-template
+!.env.example
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+ssh_keys/
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+
+# Version control
+.svn/
+.hg/
+.bzr/
+
+# Package manager files
+composer.phar
+vendor/
+Gemfile.lock
+
+# Database dumps
+*.sql
+*.dump
+*.db
+*.sqlite
+*.sqlite3
+
+# Media files (usually not needed in container)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.mp4
+*.mp3
+*.avi
+*.mov
+*.wmv
+*.flv
+*.pdf
+
+# Virtualmin specific
+virtualmin/etc/webmin/.last-config
+virtualmin/etc/webmin/miniserv.error
+virtualmin/etc/webmin/miniserv.log
+virtualmin/etc/usermin/miniserv.error
+virtualmin/etc/usermin/miniserv.log

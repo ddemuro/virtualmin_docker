@@ -1,0 +1,44 @@
+# Virtualmin Docker Automated Backup Cron Configuration
+# This file should be placed in /etc/cron.d/virtualmin-backup
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+
+# Environment variables for backups
+BACKUP_ROOT=/backups
+MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD_PLACEHOLDER
+LDAP_ADMIN_PASSWORD=LDAP_ADMIN_PASSWORD_PLACEHOLDER
+BACKUP_RETENTION_DAYS=7
+BACKUP_RETENTION_WEEKLY=4
+BACKUP_RETENTION_MONTHLY=3
+
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── hour (0 - 23)
+# │ │ ┌───────────── day of the month (1 - 31)
+# │ │ │ ┌───────────── month (1 - 12)
+# │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday)
+# │ │ │ │ │
+# │ │ │ │ │
+# * * * * * user command
+
+# Daily full backup at 2:00 AM
+0 2 * * * root /usr/local/bin/automated-backup.sh >> /backups/backup.log 2>&1
+
+# Quick configuration backup every 6 hours (configs only, no data)
+0 */6 * * * root /usr/local/bin/quick-backup.sh >> /backups/backup.log 2>&1
+
+# MySQL backup every 4 hours (incremental)
+0 */4 * * * root /usr/local/bin/mysql-backup.sh >> /backups/backup.log 2>&1
+
+# Verify backups daily at 6:00 AM
+0 6 * * * root /usr/local/bin/verify-backups.sh >> /backups/backup.log 2>&1
+
+# Clean old backups weekly on Sunday at 3:00 AM
+0 3 * * 0 root /usr/local/bin/cleanup-backups.sh >> /backups/backup.log 2>&1
+
+# Generate backup report weekly on Monday at 8:00 AM
+0 8 * * 1 root /usr/local/bin/backup-report.sh >> /backups/backup.log 2>&1
+
+# Optional: Sync backups to remote location daily at 4:00 AM
+# 0 4 * * * root /usr/local/bin/sync-backups.sh >> /backups/backup.log 2>&1

@@ -1,0 +1,153 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Docker containers logs
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            time: time
+      - json:
+          expressions:
+            tag: attrs.tag
+          source: stream
+      - regex:
+          expression: ^(?P<container_name>/?(?:[^/]+/)?(?P<service_name>[^/]+))$
+          source: tag
+      - labels:
+          service_name:
+          container_name:
+      - timestamp:
+          format: RFC3339Nano
+          source: time
+      - output:
+          source: output
+
+  # System logs
+  - job_name: syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          __path__: /var/log/syslog
+
+  # Apache logs
+  - job_name: apache
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: apache
+          service: apache2
+          __path__: /var/log/apache2/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>[\d\.]+) - (?P<remote_user>[^ ]+) \[(?P<time_local>[^\]]+)\] "(?P<method>[A-Z]+) (?P<request>[^ ]+) (?P<protocol>[^"]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+)'
+      - labels:
+          remote_addr:
+          method:
+          status:
+
+  # MySQL logs
+  - job_name: mysql
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: mysql
+          service: mariadb
+          __path__: /var/log/mysql/*.log
+
+  # Mail logs
+  - job_name: mail
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: mail
+          service: postfix
+          __path__: /var/log/mail.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<service>\w+)\[(?P<pid>\d+)\]:\s+(?P<message>.*)'
+      - labels:
+          hostname:
+          service:
+
+  # Virtualmin logs
+  - job_name: virtualmin
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: virtualmin
+          service: webmin
+          __path__: /var/log/virtualmin/*.log
+
+  # PHP-FPM logs
+  - job_name: php-fpm
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: php-fpm
+          service: php
+          __path__: /var/log/php*.log
+
+  # Dovecot logs
+  - job_name: dovecot
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: dovecot
+          service: imap
+          __path__: /var/log/dovecot*.log
+
+  # BIND/Named logs
+  - job_name: bind
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: bind
+          service: dns
+          __path__: /var/log/named/*.log
+
+  # Fail2ban logs
+  - job_name: fail2ban
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fail2ban
+          service: security
+          __path__: /var/log/fail2ban.log
+
+  # ClamAV logs
+  - job_name: clamav
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: clamav
+          service: antivirus
+          __path__: /var/log/clamav/*.log
