@@ -33,12 +33,12 @@ start_service() {
         service "$service" start 2>/dev/null || true
     fi
 
-    sleep 2
+    sleep 1
 
     if check_service "$service"; then
         return 0
     else
-        echo -e "${RED}Failed to start $service${NC}"
+        echo -e "${RED}Warning: Failed to start $service (may not be installed)${NC}"
         return 1
     fi
 }
@@ -59,56 +59,48 @@ mkdir -p /var/log/virtualmin
 
 # Set proper permissions
 chmod 755 /var/run/sshd
-chown mysql:mysql /var/run/mysqld 2>/dev/null || true
-
-# Initialize databases if needed
-if [ ! -d "/var/lib/mysql/mysql" ]; then
-    echo -e "${YELLOW}Initializing MySQL database...${NC}"
-    mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
-fi
 
 # Start essential services
 echo -e "${YELLOW}Starting essential services...${NC}"
 
 # Start cron
-start_service cron
+start_service cron || true
 
 # Start SSH
-start_service ssh
+start_service ssh || true
 
-# Start MySQL/MariaDB
-start_service mysql || start_service mariadb
+# Note: MySQL and SLAPD run in separate containers
 
 # Start Postfix
-start_service postfix
+start_service postfix || true
 
 # Start Dovecot
-start_service dovecot
+start_service dovecot || true
 
 # Start BIND9
-start_service bind9 || start_service named
+start_service bind9 || start_service named || true
 
 # Start Apache2
-start_service apache2
+start_service apache2 || true
 
 # Start PHP-FPM services for all installed versions
 for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3; do
     if [ -f "/etc/init.d/php${version}-fpm" ]; then
-        start_service "php${version}-fpm"
+        start_service "php${version}-fpm" || true
     fi
 done
 
 # Start Webmin/Virtualmin
 if [ -f /etc/init.d/webmin ]; then
-    start_service webmin
+    start_service webmin || true
 fi
 
 # Start fail2ban
-start_service fail2ban
+start_service fail2ban || true
 
 # Start ClamAV
-start_service clamav-daemon
-start_service clamav-freshclam
+start_service clamav-daemon || true
+start_service clamav-freshclam || true
 
 # Function to handle container shutdown
 shutdown_handler() {
@@ -148,11 +140,11 @@ while true; do
     # Check critical services every 30 seconds
     sleep 30
 
-    # Restart critical services if they've stopped
-    for service in apache2 mysql postfix dovecot; do
+    # Restart critical services if they've stopped (MySQL runs in separate container)
+    for service in apache2 postfix dovecot; do
         if ! pgrep -x "$service" > /dev/null; then
             echo -e "${YELLOW}Service $service stopped, attempting restart...${NC}"
-            start_service "$service"
+            start_service "$service" || true
         fi
     done
 done

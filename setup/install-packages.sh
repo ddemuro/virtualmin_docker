@@ -6,37 +6,30 @@ echo "========================================"
 echo "Installing Virtualmin Core Packages"
 echo "========================================"
 
+# Remove apt-listchanges to avoid errors
+rm -f /usr/bin/apt-listchanges
+
 # Update package lists
 apt-get update
 
-# Install core Virtualmin package
-apt-get install -y virtualmin-core
+# Install core Virtualmin package (if available)
+apt-get install -y virtualmin-core || echo "Virtualmin-core not available, installing components separately..."
 
 echo "========================================"
 echo "Installing Web Server Packages"
 echo "========================================"
 
 # Apache and related packages
-apt-get install -y \
-    apache2 \
-    apache2-bin \
-    apache2-data \
-    apache2-doc \
-    apache2-suexec-custom \
-    apache2-utils \
-    libapache2-mod-auth-plain \
-    libapache2-mod-authn-yolo \
-    libapache2-mod-bw \
-    libapache2-mod-fcgid \
-    libapache2-mod-geoip \
-    libapache2-mod-mapcache \
-    libapache2-mod-python \
-    libapache2-mod-removeip \
-    libapache2-mod-rpaf \
-    libapache2-mod-upload-progress \
-    libapache2-mod-uwsgi \
-    libapache2-mod-webauth \
-    libapache2-mod-xsendfile
+APACHE_PACKAGES="apache2 apache2-bin apache2-data apache2-doc apache2-suexec-custom apache2-utils"
+APACHE_MODS="libapache2-mod-fcgid libapache2-mod-geoip libapache2-mod-rpaf libapache2-mod-uwsgi libapache2-mod-xsendfile"
+
+# Install core Apache packages
+apt-get install -y $APACHE_PACKAGES
+
+# Install available Apache modules (skip unavailable ones)
+for mod in $APACHE_MODS; do
+    apt-get install -y $mod 2>/dev/null || echo "Skipping unavailable package: $mod"
+done
 
 echo "========================================"
 echo "Installing Mail Server Packages"
@@ -88,13 +81,17 @@ apt-get install -y \
     openssl
 
 echo "========================================"
-echo "Installing Database Tools"
+echo "Installing Database Server and Tools"
 echo "========================================"
 
-# Database related (client tools only, server is in separate container)
+# MySQL/MariaDB server and client tools
 apt-get install -y \
+    mariadb-server \
+    mariadb-client \
+    mariadb-common \
     default-mysql-client \
-    libmysqlclient-dev
+    libmysqlclient-dev \
+    libdbd-mysql-perl
 
 echo "========================================"
 echo "Installing Development Tools"
@@ -175,6 +172,20 @@ echo "========================================"
 # Monitoring and logging
 apt-get install -y \
     filebeat || echo "Filebeat not available, skipping..."
+
+echo "========================================"
+echo "Installing LDAP Server"
+echo "========================================"
+
+# OpenLDAP server and tools
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    slapd \
+    ldap-utils \
+    ldapscripts \
+    libpam-ldap \
+    libnss-ldap \
+    ldap-auth-client \
+    ldap-auth-config
 
 echo "========================================"
 echo "Installing Additional Services"

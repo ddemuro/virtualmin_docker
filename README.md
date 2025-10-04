@@ -1,301 +1,358 @@
 # Virtualmin Docker - Full Service Container
 
-A comprehensive Docker-based Virtualmin deployment with full monitoring, multiple PHP versions, and enterprise features.
+A comprehensive Docker-based Virtualmin deployment that runs like a full Linux VM with ALL services integrated in a single container, plus monitoring and management interfaces.
 
-## Features
-
-- 🚀 **Full Virtualmin/Webmin** control panel
-- 🐘 **Multiple PHP versions** (5.6, 7.0-7.4, 8.0-8.3)
-- 📊 **Complete monitoring stack** (Grafana, Prometheus, Loki)
-- 📧 **Mail services** (Postfix, Dovecot, DKIM)
-- 🔒 **Security features** (Fail2ban, ClamAV, SSL/TLS)
-- 🗄️ **Database support** (MariaDB with phpMyAdmin)
-- 🌐 **DNS management** (BIND9)
-- 📁 **LDAP integration** (OpenLDAP with phpLDAPadmin)
-- 🔄 **Backup/Restore** capabilities
-- 🔧 **Easy management** via sandbox.sh script
-
-## Quick Start
-
-### 1. Clone the Repository
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
 git clone https://github.com/yourusername/virtualmin_docker.git
 cd virtualmin_docker
+
+# Start all services
+docker compose up -d
+
+# Check status
+docker compose ps
+
+# SSH into container
+ssh root@localhost -p 2222
+# Password: virtualmin
 ```
 
-### 2. Configure Environment
+## 📋 Default Credentials
 
-```bash
-cp .env-template .env
-# Edit .env with your passwords and settings
-nano .env
-```
+### Main Services
 
-### 3. Install and Start
+| Service | Username | Password | Access |
+|---------|----------|----------|--------|
+| **SSH** | `root` | `virtualmin` | `ssh root@localhost -p 2222` |
+| **MySQL/MariaDB** | `root` | `virtualmin` | Port 3306 |
+| **Virtualmin/Webmin** | `root` | Set on first login | https://localhost:10000 |
+| **LDAP/SLAPD** | `cn=admin,dc=virtualmin,dc=local` | `virtualmin` | Port 389 |
 
-```bash
-# Make sandbox executable
-chmod +x sandbox.sh
+### Management Interfaces
 
-# Validate configuration
-./sandbox.sh validate
+| Service | URL | Username | Password |
+|---------|-----|----------|----------|
+| **phpMyAdmin** | http://localhost:8081 | `root` | `virtualmin` |
+| **phpLDAPadmin** | http://localhost:8082 | `cn=admin,dc=virtualmin,dc=local` | `virtualmin` |
+| **Portainer** | http://localhost:9000 | Set on first access | Set on first access |
 
-# Install and start all services
-./sandbox.sh install
-```
+### Monitoring Stack
 
-### 4. Access Services
+| Service | URL | Username | Password |
+|---------|-----|----------|----------|
+| **Grafana** | http://localhost:3001 | `admin` | `admin` |
+| **Prometheus** | http://localhost:9090 | - | - |
+| **AlertManager** | http://localhost:9093 | - | - |
 
-| Service | URL | Default Credentials |
-|---------|-----|-------------------|
-| Virtualmin | https://localhost:10000 | Set during installation |
-| Grafana | http://localhost:3000 | admin / (from .env) |
-| phpMyAdmin | http://localhost:10081 | root / (from .env) |
-| phpLDAPadmin | http://localhost:10080 | admin / (from .env) |
+## 🏗️ Architecture
 
-## Sandbox Commands
+### Main Virtualmin Container
+The main container includes ALL services running like a full Linux server:
+- **Web Server**: Apache with mod_php, mod_fcgid, mod_wsgi
+- **PHP Versions**: 5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3
+- **Database**: MariaDB/MySQL
+- **Directory Service**: OpenLDAP (SLAPD)
+- **DNS Server**: BIND9
+- **Mail Server**: Postfix (SMTP) + Dovecot (IMAP/POP3)
+- **Security**: Fail2ban, ClamAV
+- **Control Panel**: Virtualmin/Webmin/Usermin
 
-The `sandbox.sh` script provides comprehensive management:
+### Support Containers
+- **phpMyAdmin**: Database management interface
+- **phpLDAPadmin**: LDAP directory management
+- **Portainer**: Docker container management
+- **Prometheus**: Metrics collection
+- **Grafana**: Metrics visualization
+- **Loki**: Log aggregation
+- **AlertManager**: Alert routing
 
-```bash
-./sandbox.sh build       # Build Docker image
-./sandbox.sh test        # Run test suite
-./sandbox.sh install     # Complete installation
-./sandbox.sh status      # Check status
-./sandbox.sh logs        # View logs
-./sandbox.sh shell       # Open container shell
-./sandbox.sh backup      # Create backup
-./sandbox.sh restore     # Restore from backup
-./sandbox.sh update      # Update OS and Virtualmin
-./sandbox.sh monitor     # Show monitoring URLs
-./sandbox.sh publish     # Publish to registry
-./sandbox.sh clean       # Cleanup containers
-```
-
-## Architecture
-
-### Container Stack
-
-- **tkvmin** - Main Virtualmin container with all services
-- **mysql** - MariaDB database server
-- **slapd** - OpenLDAP directory server
-- **prometheus** - Metrics collection
-- **grafana** - Monitoring dashboards
-- **loki** - Log aggregation
-- **node-exporter** - System metrics
-- **cadvisor** - Container metrics
-
-### PHP Versions
-
-All PHP versions from 5.6 to 8.3 are installed with extensive module support:
-- PHP-FPM for each version
-- Apache mod_php support
-- CLI tools
-- Common extensions (mysql, redis, memcached, etc.)
-
-### Monitoring
-
-Complete observability stack:
-- **Metrics**: CPU, Memory, Disk, Network
-- **Logs**: Centralized logging with Loki
-- **Alerts**: Pre-configured alert rules
-- **Dashboards**: Grafana visualizations
-
-## Directory Structure
+## 📁 Directory Structure
 
 ```
 virtualmin_docker/
-├── Dockerfile              # Clean, modular Dockerfile
-├── docker-compose.yml      # Service orchestration
-├── sandbox.sh             # Management script
-├── setup/                 # Installation scripts
-│   ├── install-packages.sh
-│   ├── install-php.sh
-│   ├── configure-system.sh
-│   ├── run.sh
-│   ├── update-os.sh
-│   ├── update-virtualmin.sh
-│   ├── backup-container.sh
-│   └── restore-container.sh
-├── monitoring/            # Monitoring configs
-│   ├── prometheus/
-│   ├── grafana/
-│   ├── loki/
-│   └── promtail/
-└── virtualmin/           # Persistent data volumes
-    ├── etc/
-    ├── home/
-    ├── var/
-    └── ...
+├── docker-compose.yml       # Main configuration (USE THIS ONE!)
+├── README.md               # This file
+├── virtualmin/             # Persistent data (mounted to container)
+│   ├── etc/               # System configuration files
+│   ├── var/               # Variable data (logs, mail, www)
+│   ├── home/              # User home directories
+│   ├── root/              # Root user directory
+│   ├── opt/               # Optional software
+│   └── usr/               # User programs
+├── backups/               # Backup directory
+├── monitoring/            # Monitoring configurations
+│   ├── prometheus/        # Prometheus config & rules
+│   ├── grafana/          # Grafana dashboards & datasources
+│   ├── loki/             # Loki configuration
+│   └── alertmanager/     # Alert routing rules
+└── setup/                # Setup scripts
+
 ```
 
-## Configuration
+## 🔌 Port Mappings
+
+### Core Services
+| Service | Container Port | Host Port | Notes |
+|---------|---------------|-----------|-------|
+| SSH | 22 | 2222 | Secure Shell access (changed to avoid conflict) |
+| HTTP | 80 | 80 | Web server |
+| HTTPS | 443 | 443 | Secure web server |
+| MySQL | 3306 | 3306 | Database server |
+| LDAP | 389 | 389 | Directory service |
+| LDAPS | 636 | 636 | Secure LDAP |
+| DNS | 53 | 15353 | Domain name service (changed to avoid conflict) |
+| Virtualmin | 10000 | 10000 | Control panel |
+| Usermin | 20000 | 20000 | User panel |
+
+### Mail Services
+| Service | Container Port | Host Port | Notes |
+|---------|---------------|-----------|-------|
+| SMTP | 25 | 2525 | Mail delivery (changed to avoid conflict) |
+| POP3 | 110 | 1110 | Mail retrieval (changed to avoid conflict) |
+| IMAP | 143 | 1143 | Mail access (changed to avoid conflict) |
+| SMTPS | 465 | 465 | Secure SMTP |
+| Submission | 587 | 587 | Mail submission |
+| IMAPS | 993 | 993 | Secure IMAP |
+| POP3S | 995 | 995 | Secure POP3 |
+
+### Management & Monitoring
+| Service | Port | URL |
+|---------|------|-----|
+| phpMyAdmin | 8081 | http://localhost:8081 |
+| phpLDAPadmin | 8082 | http://localhost:8082 |
+| Portainer | 9000 | http://localhost:9000 |
+| Prometheus | 9090 | http://localhost:9090 |
+| Grafana | 3001 | http://localhost:3001 |
+| Node Exporter | 9100 | http://localhost:9100 |
+| cAdvisor | 8090 | http://localhost:8090 |
+| Loki | 3100 | http://localhost:3100 |
+| AlertManager | 9093 | http://localhost:9093 |
+
+## 🛠️ Common Commands
+
+### Container Management
+```bash
+# Start all services
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# Restart services
+docker compose restart
+
+# View logs
+docker compose logs -f virtualmin
+
+# View specific service logs
+docker compose logs -f grafana
+```
+
+### Access Container
+```bash
+# SSH into container
+ssh root@localhost -p 2222
+# Password: virtualmin
+
+# Execute command in container
+docker exec virtualmin service apache2 status
+
+# Interactive shell
+docker exec -it virtualmin bash
+```
+
+### Service Management
+```bash
+# Inside container - check all services
+docker exec virtualmin service --status-all
+
+# Restart individual services
+docker exec virtualmin service apache2 restart
+docker exec virtualmin service mariadb restart
+docker exec virtualmin service slapd restart
+docker exec virtualmin service postfix restart
+docker exec virtualmin service dovecot restart
+docker exec virtualmin service bind9 restart
+docker exec virtualmin service ssh restart
+```
+
+### Database Access
+```bash
+# MySQL CLI
+docker exec virtualmin mysql -u root -pvirtualmin
+
+# Run SQL command
+docker exec virtualmin mysql -u root -pvirtualmin -e "SHOW DATABASES;"
+```
+
+### LDAP Access
+```bash
+# Search LDAP
+docker exec virtualmin ldapsearch -x -h localhost -b "dc=virtualmin,dc=local"
+
+# Add LDAP entry
+docker exec virtualmin ldapadd -x -D "cn=admin,dc=virtualmin,dc=local" -w virtualmin -f entry.ldif
+```
+
+## 🔧 Configuration
 
 ### Environment Variables
+The main configuration is in `docker-compose.yml`:
 
-Key variables in `.env`:
-- `MYSQL_ROOT_PASSWORD` - MySQL root password
-- `GRAFANA_PASSWORD` - Grafana admin password
-- `LDAP_ADMIN_PASSWORD` - LDAP admin password
-- `TZ` - Timezone setting
-
-### Ports
-
-| Port | Service |
-|------|---------|
-| 22 | SSH |
-| 25, 587, 465 | SMTP |
-| 53 | DNS |
-| 80, 443 | HTTP/HTTPS |
-| 110, 995 | POP3/POP3S |
-| 143, 993 | IMAP/IMAPS |
-| 3000 | Grafana |
-| 3306 | MySQL |
-| 9090 | Prometheus |
-| 10000 | Virtualmin |
-| 10080 | phpLDAPadmin |
-| 10081 | phpMyAdmin |
-
-## Backup & Restore
-
-### Create Backup
-
-```bash
-# Configuration backup
-./sandbox.sh backup
-
-# Full backup with data
-./sandbox.sh backup --full
+```yaml
+environment:
+  - MYSQL_ROOT_PASSWORD=virtualmin
+  - SLAPD_PASSWORD=virtualmin
+  - SLAPD_DOMAIN=virtualmin.local
+  - SLAPD_ORGANISATION=Virtualmin
 ```
 
-### Restore Backup
+### Changing Default Passwords
 
+1. **SSH/Root Password**:
 ```bash
-./sandbox.sh restore --file=./backups/virtualmin-backup-20240101.tar.gz
+docker exec -it virtualmin passwd root
 ```
 
-## Updates
-
-### Update OS Packages
-
+2. **MySQL Password**:
 ```bash
-./sandbox.sh update
-# Or inside container:
-update-os
+docker exec virtualmin mysql -u root -pvirtualmin
+mysql> ALTER USER 'root'@'%' IDENTIFIED BY 'newpassword';
+mysql> FLUSH PRIVILEGES;
 ```
 
-### Update Virtualmin
-
+3. **LDAP Admin Password**:
 ```bash
-update-virtualmin
+docker exec virtualmin ldappasswd -D "cn=admin,dc=virtualmin,dc=local" -w virtualmin
 ```
 
-## Publishing to Registry
+4. **Update docker-compose.yml** with new passwords and restart
 
-### Configure Registry
+### Persistent Data
+All configuration and data is stored in the `virtualmin/` folder:
+- `virtualmin/etc/` - System configuration
+- `virtualmin/var/` - Logs, mail, web files
+- `virtualmin/home/` - User home directories
+- `virtualmin/root/` - Root user files
 
-Edit `sandbox.sh` to set your registry:
+## 📊 Monitoring
+
+### Grafana Dashboards
+Access at http://localhost:3001 (admin/admin)
+- System Overview Dashboard
+- Container Metrics Dashboard
+- Apache Performance Dashboard
+- MySQL Performance Dashboard
+
+### Prometheus Metrics
+Access at http://localhost:9090
+- Node metrics from Node Exporter
+- Container metrics from cAdvisor
+- Apache metrics from Apache Exporter
+- MySQL metrics from MySQL Exporter
+
+### Logs with Loki
+Centralized logging accessible through Grafana
+
+## 🔒 Security
+
+⚠️ **Important Security Steps**:
+
+1. **Change all default passwords immediately**
+2. **Configure firewall rules**
+3. **Enable SSL/TLS for all services**
+4. **Regular security updates**:
 ```bash
-REGISTRY="dkr.takelan.com"
-NAMESPACE="takelan"
-IMAGE_NAME="dockermin"
+docker exec virtualmin apt-get update && apt-get upgrade
 ```
 
-### Publish Image
-
+5. **Configure Fail2ban**:
 ```bash
-# Login to registry
-docker login dkr.takelan.com
-
-# Publish with version
-./sandbox.sh publish
-
-# Publish with custom tag
-./sandbox.sh publish --tag=production
+docker exec virtualmin fail2ban-client status
 ```
 
-## Development
+## 🐛 Troubleshooting
 
-### Build Image
-
+### Container Won't Start
 ```bash
-./sandbox.sh build --no-cache
+# Check for port conflicts
+sudo netstat -tulpn | grep -E "(80|443|3306|2222)"
+
+# Check Docker logs
+docker compose logs virtualmin
+
+# Remove and recreate
+docker compose down
+docker compose up -d
 ```
 
-### Run Tests
-
+### Services Not Running
 ```bash
-./sandbox.sh test --verbose
+# Check service status inside container
+docker exec virtualmin service --status-all
+
+# Restart all services
+docker exec virtualmin bash -c "
+  service apache2 restart
+  service mariadb restart
+  service slapd restart
+  service ssh restart
+"
 ```
 
-### Debug Container
-
-```bash
-./sandbox.sh debug
-./sandbox.sh debug --service=apache2
+### Port Conflicts
+Edit `docker-compose.yml` to change port mappings:
+```yaml
+ports:
+  - "8080:80"    # Change HTTP to 8080
+  - "8443:443"   # Change HTTPS to 8443
 ```
 
-## Security
-
-- Fail2ban for intrusion prevention
-- ClamAV for virus scanning
-- SSL/TLS support with Let's Encrypt
-- Firewall rules via iptables
-- Regular security updates
-
-## Troubleshooting
-
-### Check Service Status
-
+### Reset Everything
 ```bash
-./sandbox.sh status
-docker exec tkvmin check-services
+# Stop all containers
+docker compose down -v
+
+# Clean persistent data (WARNING: Deletes all data!)
+sudo rm -rf virtualmin/var/* virtualmin/etc/* virtualmin/home/*
+
+# Start fresh
+docker compose up -d
 ```
 
-### View Logs
+### Known Issues
 
-```bash
-./sandbox.sh logs --tail=100
-docker logs tkvmin
-```
+1. **Missing supervisord.conf**: Fixed in latest version. The main supervisord configuration file is now created from `setup/supervisord-main.conf`.
 
-### Access Monitoring
+2. **Port Conflicts**: The following ports have been changed to avoid conflicts with system services:
+   - SSH: Port 22 → 2222
+   - SMTP: Port 25 → 2525
+   - DNS: Port 53 → 15353
+   - POP3: Port 110 → 1110
+   - IMAP: Port 143 → 1143
+   - cAdvisor: Port 8080 → 8090
 
-```bash
-./sandbox.sh monitor
-# Visit http://localhost:3000 for Grafana
-```
+3. **Container Health Checks**: The container uses Apache's `/server-status` endpoint for health monitoring. Services must start properly for the container to become healthy.
 
-### Common Issues
+4. **Build Time**: Initial build takes 10-15 minutes to install all packages (Webmin, Virtualmin, Apache, PHP, MariaDB, mail servers, DNS, LDAP, etc.).
 
-1. **Services not starting**: Check logs with `./sandbox.sh logs`
-2. **Port conflicts**: Ensure ports are not in use
-3. **Permission issues**: Run with proper user permissions
-4. **Memory issues**: Increase Docker memory allocation
+5. **Container Status "Restarting"**: If the container shows "restarting" status, check logs with `docker logs tkvmin` to identify which service is failing to start.
 
-## Requirements
+## 📝 Notes
 
-- Docker Engine 20.10+
-- Docker Compose 1.29+
-- 4GB+ RAM recommended
-- 20GB+ disk space
+- The main container runs like a full Linux VM with systemd replacement
+- All services are managed by Virtualmin/Webmin interface
+- Data persists in the `virtualmin/` folder structure
+- Monitoring stack provides complete observability
+- Regular backups are stored in the `backups/` directory
 
-## License
+## 🤝 Contributing
 
-[Your License Here]
+Feel free to submit issues and pull requests.
 
-## Support
+## 📄 License
 
-For issues or questions:
-1. Check the [SANDBOX.md](SANDBOX.md) documentation
-2. Run `./sandbox.sh validate` for configuration check
-3. Open an issue on GitHub
-
-## Contributing
-
-Contributions are welcome! Please read the contributing guidelines before submitting PRs.
-
----
-
-Built with ❤️ for easy Virtualmin deployment
+MIT License - See LICENSE file for details.

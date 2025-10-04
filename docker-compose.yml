@@ -27,18 +27,18 @@ services:
         ports:
           - "80:80/tcp"
           - "443:443/tcp"
-          - "22:22/tcp"
-          - "25:25/tcp"
+          - "2222:22/tcp"
+          - "2525:25/tcp"
           - "587:587/tcp"
           - "465:465/tcp"
-          - "110:110/tcp"
+          - "1110:110/tcp"
           - "995:995/tcp"
-          - "143:143/tcp"
+          - "1143:143/tcp"
           - "993:993/tcp"
           - "10000:10000/tcp"
           - "20000:20000/tcp"
-          - "53:53/udp"
-          - "53:53/tcp"
+          - "15353:53/udp"
+          - "15353:53/tcp"
         volumes:
             - ./virtualmin/etc/:/etc
             - ./virtualmin/home/:/home
@@ -218,7 +218,7 @@ services:
           vmin:
                 ipv4_address: 172.16.235.11
         ports:
-          - "3000:3000"
+          - "3001:3000"
         depends_on:
           - prometheus
           - loki
@@ -309,7 +309,7 @@ services:
           vmin:
                 ipv4_address: 172.16.235.15
         ports:
-          - "8080:8080"
+          - "8090:8080"
         logging:
           driver: "json-file"
           options:

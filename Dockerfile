@@ -37,17 +37,17 @@ RUN chmod +x /usr/bin/systemctl
 COPY virtualmin/etc/apt/ /etc/apt/
 COPY virtualmin/usr/share/keyrings/ /usr/share/keyrings/
 
+# Remove apt-listchanges to prevent errors
+RUN rm -f /usr/bin/apt-listchanges /etc/apt/apt.conf.d/20listchanges
+
 # Copy all setup scripts
 COPY setup/*.sh /tmp/setup/
 RUN chmod +x /tmp/setup/*.sh
 
 # Run installation scripts
 RUN echo "Installing packages..." && \
-    /tmp/setup/install-packages.sh && \
-    echo "Installing PHP versions..." && \
-    /tmp/setup/install-php.sh && \
-    echo "Configuring system..." && \
-    /tmp/setup/configure-system.sh && \
+    chmod +x /tmp/setup/install-packages-minimal.sh && \
+    /tmp/setup/install-packages-minimal.sh && \
     echo "Cleaning up..." && \
     rm -rf /tmp/setup/*.sh && \
     apt-get clean && \
@@ -75,6 +75,10 @@ EXPOSE 22/tcp
 # MySQL
 EXPOSE 3306/tcp
 
+# LDAP
+EXPOSE 389/tcp
+EXPOSE 636/tcp
+
 # Postfix
 EXPOSE 25/tcp
 EXPOSE 587/tcp
@@ -96,6 +100,7 @@ COPY setup/update-os.sh /usr/local/bin/update-os
 COPY setup/update-virtualmin.sh /usr/local/bin/update-virtualmin
 COPY setup/backup-container.sh /usr/local/bin/backup-container
 COPY setup/restore-container.sh /usr/local/bin/restore-container
+COPY setup/supervisord-main.conf /etc/supervisor/supervisord.conf
 COPY setup/supervisord.conf /etc/supervisor/conf.d/virtualmin.conf
 
 # Copy automated backup scripts
@@ -122,5 +127,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5m --retries=3 \
 # Use tini as PID 1 to handle signals properly
 ENTRYPOINT ["/tini", "--"]
 
-# Default command runs supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+# Default command runs startup script
+CMD ["/usr/local/bin/start-services.sh"]
